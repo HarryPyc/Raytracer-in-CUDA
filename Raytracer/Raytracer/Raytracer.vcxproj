@@ -111,7 +111,10 @@
     <ClInclude Include="LoadTexture.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="521Template.cpp" />
+    <ClCompile Include="521Template.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -120,6 +123,7 @@
     <ClCompile Include="InitShader.cpp" />
     <ClCompile Include="LoadMesh.cpp" />
     <ClCompile Include="LoadTexture.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="template_fs.glsl" />

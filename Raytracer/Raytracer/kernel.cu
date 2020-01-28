@@ -4,58 +4,48 @@
 #include <iostream>
 #include <stdio.h>
 
-#define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
-void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
-	if (result) {
-		std::cerr << "CUDA error = " << static_cast<unsigned int>(result) << " at " <<
-			file << ":" << line << " '" << func << "' \n";
-		// Make sure we call CUDA Device Reset before exiting
-		cudaDeviceReset();
-		exit(99);
+
+void checkCUDAError(const char *msg)
+{
+	cudaError_t err = cudaGetLastError();
+
+	if (cudaSuccess != err)
+	{
+		fprintf(stderr, "CUDA error: %s: %s. \n", msg, cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
 	}
 }
 
-__global__ void render(float *fb, int max_x, int max_y) {
+
+__global__ void render(uchar4 *pos, int width, int height) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
-	if (i >= max_x || j >= max_y)
+	if ((i >= width) || (j >= height)) 
 		return;
-	int pixel_index = j * max_x * 3 + i * 3;
-	fb[pixel_index + 0] = float(i) / max_x;
-	fb[pixel_index + 1] = float(j) / max_y;
-	fb[pixel_index + 2] = 0.2;
+
+	int index = j * width + i;
+
+	unsigned char r = int(float(i) / width * 255.99) & 0xff;
+	unsigned char g = int(float(j) / height * 255.99) & 0xff;
+	unsigned char b = (70) & 0xff;
+
+	pos[index].w = 0;
+	pos[index].x = r;
+	pos[index].y = g;
+	pos[index].z = b;
 }
 
-/*int main() {
-	int nx = 800, ny = 800;
-	int num_pixels = nx * ny;
-	size_t fb_size = 3 * num_pixels * sizeof(float);
-	
-	float *fb;
-	checkCudaErrors(cudaMallocManaged(&fb, fb_size));
+extern "C" void launch_kernel(uchar4* pos, unsigned int w, unsigned int h) {
 
-	int tx = 8, ty = 8;
-	dim3 blocks(nx / tx + 1, ny / ty + 1);
+	int tx = 8;
+	int ty = 8;
+
+	dim3 blocks(w / tx + 1, h / ty + 1);
 	dim3 threads(tx, ty);
-	render << <blocks, threads >> > (fb, nx, ny);
-	checkCudaErrors(cudaGetLastError());
-	checkCudaErrors(cudaDeviceSynchronize());
+	render <<<blocks, threads >>> (pos, w, h);
 
-	// Output FB as Image
-	std::cout << "P3\n" << nx << " " << ny << "\n255\n";
-	for (int j = ny - 1; j >= 0; j--) {
-		for (int i = 0; i < nx; i++) {
-			size_t pixel_index = j * 3 * nx + i * 3;
-			float r = fb[pixel_index + 0];
-			float g = fb[pixel_index + 1];
-			float b = fb[pixel_index + 2];
-			int ir = int(255.99*r);
-			int ig = int(255.99*g);
-			int ib = int(255.99*b);
-			std::cout << ir << " " << ig << " " << ib << "\n";
-		}
-	}
-	checkCudaErrors(cudaFree(fb));
-	return 0;
-}*/
+
+	cudaThreadSynchronize();
+	checkCUDAError("kernel failed!");
+}
 
